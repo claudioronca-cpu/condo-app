@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { X, Save, MapPin, Building2 } from 'lucide-react';
 
 export default function CondoSettings({ isOpen, onClose }) {
@@ -16,9 +16,7 @@ export default function CondoSettings({ isOpen, onClose }) {
 
     const fetchDetails = async () => {
         try {
-            const res = await axios.get('http://localhost:3000/condos/details', {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
+            const res = await api.get('/condos/details');
             setAddress(res.data.address || '');
             setName(res.data.name || '');
             setMessage('');
@@ -34,9 +32,7 @@ export default function CondoSettings({ isOpen, onClose }) {
         }
         setLoading(true);
         try {
-            await axios.put('http://localhost:3000/condos/settings', { address, name }, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
+            await api.put('/condos/settings', { address, name });
             setMessage('Settings saved successfully!');
             setTimeout(() => onClose(), 1200);
         } catch (err) {

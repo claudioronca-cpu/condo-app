@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download, Users, User, Clock } from 'lucide-react';
 
@@ -15,7 +15,7 @@ export default function DocumentList({ refreshTrigger }) {
     const fetchDocuments = async () => {
         try {
             setLoading(true);
-            const res = await axios.get('http://localhost:3000/docs');
+            const res = await api.get('/docs');
             setDocuments(res.data);
         } catch (err) {
             console.error('Failed to fetch documents', err);
@@ -25,7 +25,7 @@ export default function DocumentList({ refreshTrigger }) {
     };
 
     const handleDownload = (filePath, originalTitle) => {
-        const fileUrl = `http://localhost:3000/uploads/${filePath}`;
+        const fileUrl = `${api.defaults.baseURL}/uploads/${filePath}`;
         window.open(fileUrl, '_blank');
     };
 

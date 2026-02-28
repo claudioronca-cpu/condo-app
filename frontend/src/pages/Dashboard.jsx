@@ -5,7 +5,7 @@ import { Building2, LogOut, Users, Sun, Moon, Settings } from 'lucide-react';
 import DocumentList from '../components/DocumentList';
 import DocumentUpload from '../components/DocumentUpload';
 import CondoSettings from '../components/CondoSettings';
-import axios from 'axios';
+import api from '../api';
 
 export default function Dashboard() {
     const { user, logout } = useAuth();
@@ -17,9 +17,7 @@ export default function Dashboard() {
 
     const fetchCondoName = async () => {
         try {
-            const res = await axios.get('http://localhost:3000/condos/details', {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
+            const res = await api.get('/condos/details');
             setCondoName(res.data.name || '');
         } catch (err) { console.error(err); }
     };

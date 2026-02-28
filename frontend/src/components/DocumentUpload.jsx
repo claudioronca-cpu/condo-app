@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { UploadCloud, FileText } from 'lucide-react';
 
@@ -14,7 +14,7 @@ export default function DocumentUpload({ onUploadSuccess }) {
 
     useEffect(() => {
         if (user?.role === 'admin') {
-            axios.get('http://localhost:3000/condos/members')
+            api.get('/condos/members')
                 .then(res => setMembers(res.data))
                 .catch(err => console.error('Failed to fetch members', err));
         }
@@ -38,11 +38,7 @@ export default function DocumentUpload({ onUploadSuccess }) {
         }
 
         try {
-            await axios.post('http://localhost:3000/docs', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            await api.post('/docs', formData);
             setTitle('');
             setFile(null);
             setTargetUserId('');

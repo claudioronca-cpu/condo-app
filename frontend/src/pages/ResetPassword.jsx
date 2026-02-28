@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { Lock, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export default function ResetPassword() {
@@ -27,7 +27,7 @@ export default function ResetPassword() {
         setMessage('');
 
         try {
-            await axios.post('http://localhost:3000/auth/reset-password', { token, password });
+            await api.post('/auth/reset-password', { token, password });
             setSuccess(true);
             setMessage('Your password has been reset successfully!');
             setTimeout(() => {

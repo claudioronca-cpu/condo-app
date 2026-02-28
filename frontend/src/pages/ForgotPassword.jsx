@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, KeyRound } from 'lucide-react';
 
@@ -18,7 +18,7 @@ export default function ForgotPassword() {
         setToken('');
 
         try {
-            const res = await axios.post('http://localhost:3000/auth/forgot-password', { email });
+            const res = await api.post('/auth/forgot-password', { email });
             setMessage('Success! A reset link has been simulated.');
             setToken(res.data.token); // In a real app, this would be in the email link
         } catch (err) {
@@ -48,7 +48,7 @@ export default function ForgotPassword() {
                             <div className="mt-2 pt-2 border-t border-success-light">
                                 <p className="m-0 text-xs font-mono break-all opacity-80">
                                     Simulated Reset Link: <br />
-                                    <strong>http://localhost:5173/reset-password?token={token}</strong>
+                                    <strong>{window.location.origin}/reset-password?token={token}</strong>
                                 </p>
                                 <Link
                                     to={`/reset-password?token=${token}`}
