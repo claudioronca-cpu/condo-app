@@ -48,4 +48,33 @@ router.get('/members', auth, (req, res) => {
     );
 });
 
+// Get condo details
+router.get('/details', auth, (req, res) => {
+    db.get(`SELECT id, address, name, created_at FROM condos WHERE id = ?`, [req.user.condo_id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Condo not found' });
+        res.json(row);
+    });
+});
+
+// Update condo settings (admin only)
+router.put('/settings', auth, (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Only admins can update condo settings' });
+    }
+
+    const { address, name } = req.body;
+    if (!address || !name) {
+        return res.status(400).json({ error: 'Address and name are required' });
+    }
+
+    db.run(`UPDATE condos SET address = ?, name = ? WHERE id = ?`,
+        [address, name, req.user.condo_id],
+        function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'Condo settings updated successfully' });
+        }
+    );
+});
+
 module.exports = router;

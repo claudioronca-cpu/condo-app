@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Building2, LogOut, Users, Sun, Moon } from 'lucide-react';
+import { Building2, LogOut, Users, Sun, Moon, Settings } from 'lucide-react';
 import DocumentList from '../components/DocumentList';
 import DocumentUpload from '../components/DocumentUpload';
+import CondoSettings from '../components/CondoSettings';
 import axios from 'axios';
 
 export default function Dashboard() {
@@ -11,6 +12,7 @@ export default function Dashboard() {
     const { theme, toggleTheme } = useTheme();
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [inviteMessage, setInviteMessage] = useState('');
+    const [showSettings, setShowSettings] = useState(false);
 
     const triggerRefresh = () => {
         setRefreshTrigger(prev => prev + 1);
@@ -61,6 +63,12 @@ export default function Dashboard() {
                         {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                     </button>
 
+                    {user.role === 'admin' && (
+                        <button onClick={() => setShowSettings(true)} className="btn-icon" title="Condo Settings">
+                            <Settings size={20} />
+                        </button>
+                    )}
+
                     <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)' }}></div>
 
                     <button className="btn btn-outline btn-danger" style={{ padding: '8px 16px' }} onClick={logout}>
@@ -85,7 +93,7 @@ export default function Dashboard() {
                                     <label className="text-sm font-medium mb-1 block">Email Address</label>
                                     <input
                                         type="email"
-                                        className="input"
+                                        className="input-field"
                                         placeholder="neighbor@example.com"
                                         value={inviteEmail}
                                         onChange={(e) => setInviteEmail(e.target.value)}
@@ -94,7 +102,7 @@ export default function Dashboard() {
                                 <div>
                                     <label className="text-sm font-medium mb-1 block">Role</label>
                                     <select
-                                        className="input"
+                                        className="input-field"
                                         value={inviteRole}
                                         onChange={(e) => setInviteRole(e.target.value)}
                                         style={{ width: '150px' }}
@@ -132,6 +140,9 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Condo Settings Overlay */}
+            <CondoSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
         </div>
     );
 }
