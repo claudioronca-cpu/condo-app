@@ -11,12 +11,18 @@ export const AuthProvider = ({ children }) => {
 
     // Read user from localStorage on load if available
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-        if (token && storedUser) {
-            setUser(JSON.parse(storedUser));
+        try {
+            const token = localStorage.getItem('token');
+            const storedUser = localStorage.getItem('user');
+            if (token && storedUser && storedUser !== 'undefined') {
+                setUser(JSON.parse(storedUser));
+            }
+        } catch (err) {
+            console.error("Auth initialization error:", err);
+            localStorage.clear(); // Clear potentially corrupted data
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, []);
 
     const login = async (email, password) => {
@@ -29,7 +35,9 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             return { success: true };
         } catch (err) {
-            return { success: false, message: err.response?.data?.error || 'Login failed' };
+            console.error("Login Error:", err);
+            const msg = err.response?.data?.error || err.message || 'Login failed';
+            return { success: false, message: typeof msg === 'string' ? msg : JSON.stringify(msg) };
         }
     };
 
@@ -38,7 +46,9 @@ export const AuthProvider = ({ children }) => {
             await api.post('/auth/register', userData);
             return { success: true };
         } catch (err) {
-            return { success: false, message: err.response?.data?.error || 'Registration failed' };
+            console.error("Registration Error:", err);
+            const msg = err.response?.data?.error || err.message || 'Registration failed';
+            return { success: false, message: typeof msg === 'string' ? msg : JSON.stringify(msg) };
         }
     };
 
