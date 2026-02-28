@@ -37,9 +37,7 @@ export default function Dashboard() {
             return;
         }
         try {
-            const res = await axios.post('http://localhost:3000/condos/invite', { email: inviteEmail, role: inviteRole }, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
+            const res = await api.post('/condos/invite', { email: inviteEmail, role: inviteRole });
             setInviteMessage(`Success! Send this 13-character code to ${res.data.email}: ${res.data.invite_code}`);
             setInviteEmail('');
         } catch (err) {
@@ -59,7 +57,7 @@ export default function Dashboard() {
                     <div>
                         <h2 className="m-0 text-xl">CondoConnect{condoName ? `: ${condoName}` : ''}</h2>
                         <p className="text-sm mt-1 mb-0" style={{ color: 'var(--text-muted)' }}>
-                            Welcome, <strong style={{ color: 'var(--text-main)' }}>{user.name}</strong>
+                            Welcome, <strong style={{ color: 'var(--text-main)' }}>{user?.name || 'Guest'}</strong>
                         </p>
                     </div>
                 </div>
