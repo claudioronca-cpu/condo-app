@@ -23,6 +23,9 @@ apiRouter.use('/auth', authRoutes);
 apiRouter.use('/condos', condoRoutes);
 apiRouter.use('/docs', docRoutes);
 
+// Health check / ping
+apiRouter.get('/ping', (req, res) => res.json({ status: 'ok', message: 'CondoConnect API is online' }));
+
 app.use('/api', apiRouter);
 
 // General error handler
