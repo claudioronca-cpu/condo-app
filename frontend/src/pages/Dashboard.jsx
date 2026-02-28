@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Building2, LogOut, Users, Sun, Moon, Settings } from 'lucide-react';
@@ -13,6 +13,18 @@ export default function Dashboard() {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [inviteMessage, setInviteMessage] = useState('');
     const [showSettings, setShowSettings] = useState(false);
+    const [condoName, setCondoName] = useState('');
+
+    const fetchCondoName = async () => {
+        try {
+            const res = await axios.get('http://localhost:3000/condos/details', {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setCondoName(res.data.name || '');
+        } catch (err) { console.error(err); }
+    };
+
+    useEffect(() => { fetchCondoName(); }, []);
 
     const triggerRefresh = () => {
         setRefreshTrigger(prev => prev + 1);
@@ -47,9 +59,9 @@ export default function Dashboard() {
                         <Building2 className="text-primary" style={{ color: 'var(--primary-color)' }} size={28} />
                     </div>
                     <div>
-                        <h2 className="m-0 text-xl">Condo Platform</h2>
+                        <h2 className="m-0 text-xl">CondoConnect{condoName ? `: ${condoName}` : ''}</h2>
                         <p className="text-sm mt-1 mb-0" style={{ color: 'var(--text-muted)' }}>
-                            Welcome, <strong style={{ color: 'var(--text-main)' }}>{user.name}</strong> • Condo ID: {user.condo_id}
+                            Welcome, <strong style={{ color: 'var(--text-main)' }}>{user.name}</strong>
                         </p>
                     </div>
                 </div>
@@ -75,56 +87,58 @@ export default function Dashboard() {
                         <LogOut size={16} /> Logout
                     </button>
                 </div>
-            </header>
+            </header >
 
             {/* Admin Panel */}
-            {user.role === 'admin' && (
-                <div className="card mb-8" style={{ padding: '1.5rem 2rem', borderLeft: '4px solid var(--primary-color)' }}>
-                    <div className="flex items-center justify-between">
-                        <div style={{ flex: 1, paddingRight: '2rem' }}>
-                            <h3 className="flex items-center gap-2 m-0 text-lg">
-                                <Users size={20} style={{ color: 'var(--primary-color)' }} />
-                                Manage Members
-                            </h3>
-                            <p className="text-sm mt-2 mb-4" style={{ color: 'var(--text-muted)' }}>Generate a secure 13-character invitation code for new condo owners or admins.</p>
+            {
+                user.role === 'admin' && (
+                    <div className="card mb-8" style={{ padding: '1.5rem 2rem', borderLeft: '4px solid var(--primary-color)' }}>
+                        <div className="flex items-center justify-between">
+                            <div style={{ flex: 1, paddingRight: '2rem' }}>
+                                <h3 className="flex items-center gap-2 m-0 text-lg">
+                                    <Users size={20} style={{ color: 'var(--primary-color)' }} />
+                                    Manage Members
+                                </h3>
+                                <p className="text-sm mt-2 mb-4" style={{ color: 'var(--text-muted)' }}>Generate a secure 13-character invitation code for new condo owners or admins.</p>
 
-                            <div className="flex gap-4 items-end">
-                                <div style={{ flex: 1 }}>
-                                    <label className="text-sm font-medium mb-1 block">Email Address</label>
-                                    <input
-                                        type="email"
-                                        className="input-field"
-                                        placeholder="neighbor@example.com"
-                                        value={inviteEmail}
-                                        onChange={(e) => setInviteEmail(e.target.value)}
-                                    />
+                                <div className="flex gap-4 items-end">
+                                    <div style={{ flex: 1 }}>
+                                        <label className="text-sm font-medium mb-1 block">Email Address</label>
+                                        <input
+                                            type="email"
+                                            className="input-field"
+                                            placeholder="neighbor@example.com"
+                                            value={inviteEmail}
+                                            onChange={(e) => setInviteEmail(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Role</label>
+                                        <select
+                                            className="input-field"
+                                            value={inviteRole}
+                                            onChange={(e) => setInviteRole(e.target.value)}
+                                            style={{ width: '150px' }}
+                                        >
+                                            <option value="owner">Owner</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+                                    <button className="btn btn-primary h-12" onClick={generateInvite}>
+                                        <Users size={16} /> Generate Code
+                                    </button>
                                 </div>
-                                <div>
-                                    <label className="text-sm font-medium mb-1 block">Role</label>
-                                    <select
-                                        className="input-field"
-                                        value={inviteRole}
-                                        onChange={(e) => setInviteRole(e.target.value)}
-                                        style={{ width: '150px' }}
-                                    >
-                                        <option value="owner">Owner</option>
-                                        <option value="admin">Admin</option>
-                                    </select>
-                                </div>
-                                <button className="btn btn-primary h-12" onClick={generateInvite}>
-                                    <Users size={16} /> Generate Code
-                                </button>
+
+                                {inviteMessage && (
+                                    <div className="mt-4" style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success-color)', borderRadius: '8px', fontSize: '15px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                        <strong>{inviteMessage}</strong>
+                                    </div>
+                                )}
                             </div>
-
-                            {inviteMessage && (
-                                <div className="mt-4" style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success-color)', borderRadius: '8px', fontSize: '15px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                    <strong>{inviteMessage}</strong>
-                                </div>
-                            )}
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Main Grid */}
             <div className="flex flex-col" style={{ gap: '2rem' }}>
@@ -142,7 +156,7 @@ export default function Dashboard() {
             </div>
 
             {/* Condo Settings Overlay */}
-            <CondoSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
-        </div>
+            <CondoSettings isOpen={showSettings} onClose={() => { setShowSettings(false); fetchCondoName(); }} />
+        </div >
     );
 }
