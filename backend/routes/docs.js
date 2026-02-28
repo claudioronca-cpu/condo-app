@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Upload a document
-router.post('/', auth, upload.single('document'), (req, res) => {
+router.post('/', auth, upload.single('document'), async (req, res) => {
     const { title, target_user_id } = req.body;
     const file = req.file;
 
@@ -34,19 +34,16 @@ router.post('/', auth, upload.single('document'), (req, res) => {
     }
 
     // Role validation
-    // Rule: Users (owners) can upload common docs.
-    // Rule: Admins can upload common docs AND docs for single users.
     if (target_user_id && req.user.role !== 'admin') {
-        // Check if the user is uploading a targeted doc. Only admins can do this.
-        // Cleanup the uploaded file to avoid orphaned files:
         fs.unlinkSync(file.path);
         return res.status(403).json({ error: 'Only admins can upload documents for specific users' });
     }
 
     const query = `
-    INSERT INTO documents (title, file_path, uploaded_by, condo_id, target_user_id)
-    VALUES (?, ?, ?, ?, ?)
-  `;
+        INSERT INTO documents (title, file_path, uploaded_by, condo_id, target_user_id)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+    `;
     const params = [
         title,
         file.filename,
@@ -55,39 +52,42 @@ router.post('/', auth, upload.single('document'), (req, res) => {
         target_user_id || null
     ];
 
-    db.run(query, params, function (err) {
-        if (err) {
-            fs.unlinkSync(file.path);
-            return res.status(500).json({ error: err.message });
-        }
-        res.status(201).json({ message: 'Document uploaded successfully', docId: this.lastID });
-    });
+    try {
+        const result = await db.run(query, params);
+        res.status(201).json({ message: 'Document uploaded successfully', docId: result.rows[0].id });
+    } catch (err) {
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Retrieve documents based on user access
-router.get('/', auth, (req, res) => {
+router.get('/', auth, async (req, res) => {
     const user = req.user;
 
     let query = `
-    SELECT d.id, d.title, d.file_path, d.created_at, u.name as uploader_name, u.role as uploader_role, d.target_user_id 
-    FROM documents d
-    LEFT JOIN users u ON d.uploaded_by = u.id
-    WHERE d.condo_id = ?
-  `;
+        SELECT d.id, d.title, d.file_path, d.created_at, u.name as uploader_name, u.role as uploader_role, d.target_user_id 
+        FROM documents d
+        LEFT JOIN users u ON d.uploaded_by = u.id
+        WHERE d.condo_id = $1
+    `;
+
+    const params = [user.condo_id];
 
     if (user.role !== 'admin') {
         // Owners can only see common docs or docs targeted to them
-        query += ` AND (d.target_user_id IS NULL OR d.target_user_id = ${user.id})`;
-    } else {
-        // Admins see everything in the condo
+        query += ` AND (d.target_user_id IS NULL OR d.target_user_id = $2)`;
+        params.push(user.id);
     }
 
     query += ` ORDER BY d.created_at DESC`;
 
-    db.all(query, [user.condo_id], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const rows = await db.all(query, params);
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;

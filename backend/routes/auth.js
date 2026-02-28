@@ -32,7 +32,6 @@ const parseCondoName = (address) => {
 
 // Register
 router.post('/register', async (req, res) => {
-    // invite_code replaces condo_id + role for joining existing condos
     const { address, name, surname, unit_number, email, phone, password, invite_code } = req.body;
 
     if (!name || !surname || !email || !password) {
@@ -46,69 +45,72 @@ router.post('/register', async (req, res) => {
         if (address) {
             const condoName = parseCondoName(address);
 
-            db.run(`INSERT INTO condos (address, name) VALUES (?, ?)`, [address, condoName], function (err) {
-                if (err) return res.status(500).json({ error: err.message });
-
-                const newCondoId = this.lastID;
-                db.run(`INSERT INTO users (name, surname, unit_number, email, phone, role, condo_id, password_hash) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [name, surname, unit_number, email, phone, 'admin', newCondoId, hashedPassword],
-                    function (err2) {
-                        if (err2) {
-                            if (err2.message.includes('UNIQUE constraint failed')) {
-                                return res.status(400).json({ error: 'Email already exists' });
-                            }
-                            return res.status(500).json({ error: err2.message });
-                        }
-                        return res.status(201).json({ message: 'User and condo created', userId: this.lastID, condoId: newCondoId });
-                    }
+            try {
+                const condoRes = await db.run(
+                    `INSERT INTO condos (address, name) VALUES ($1, $2) RETURNING id`,
+                    [address, condoName]
                 );
-            });
+                const newCondoId = condoRes.rows[0].id;
+
+                const userRes = await db.run(
+                    `INSERT INTO users (name, surname, unit_number, email, phone, role, condo_id, password_hash) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+                    [name, surname, unit_number, email, phone, 'admin', newCondoId, hashedPassword]
+                );
+
+                return res.status(201).json({
+                    message: 'User and condo created',
+                    userId: userRes.rows[0].id,
+                    condoId: newCondoId
+                });
+            } catch (dbErr) {
+                if (dbErr.message.includes('unique constraint') || dbErr.message.includes('already exists')) {
+                    return res.status(400).json({ error: 'Email already exists' });
+                }
+                return res.status(500).json({ error: dbErr.message });
+            }
         } else if (invite_code) {
             // Scenario 2: User is joining an existing condo via a secure 13-character invite code
-            db.get(`SELECT * FROM invites WHERE code = ?`, [invite_code], (err, invite) => {
-                if (err) return res.status(500).json({ error: err.message });
-                if (!invite) return res.status(400).json({ error: 'Invalid invite code.' });
-                if (invite.used) return res.status(400).json({ error: 'This invite code has already been used.' });
-                if (invite.email.toLowerCase() !== email.toLowerCase()) {
-                    return res.status(400).json({ error: 'This invite code is not assigned to this email address.' });
-                }
+            const invite = await db.get(`SELECT * FROM invites WHERE code = $1`, [invite_code]);
 
-                // Code is valid, let's create the user
-                db.run(`INSERT INTO users (name, surname, unit_number, email, phone, role, condo_id, password_hash) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [name, surname, unit_number, email, phone, invite.role, invite.condo_id, hashedPassword],
-                    function (err2) {
-                        if (err2) {
-                            if (err2.message.includes('UNIQUE constraint failed')) {
-                                return res.status(400).json({ error: 'Email already exists' });
-                            }
-                            return res.status(500).json({ error: err2.message });
-                        }
-                        const newUserId = this.lastID;
+            if (!invite) return res.status(400).json({ error: 'Invalid invite code.' });
+            if (invite.used) return res.status(400).json({ error: 'This invite code has already been used.' });
+            if (invite.email.toLowerCase() !== email.toLowerCase()) {
+                return res.status(400).json({ error: 'This invite code is not assigned to this email address.' });
+            }
 
-                        // Mark invite as used
-                        db.run(`UPDATE invites SET used = 1 WHERE id = ?`, [invite.id], (err3) => {
-                            if (err3) console.error("Failed to mark invite as used:", err3);
-                        });
-
-                        return res.status(201).json({ message: 'User created and joined condo successfully', userId: newUserId });
-                    }
+            try {
+                const userRes = await db.run(
+                    `INSERT INTO users (name, surname, unit_number, email, phone, role, condo_id, password_hash) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+                    [name, surname, unit_number, email, phone, invite.role, invite.condo_id, hashedPassword]
                 );
-            });
+                const newUserId = userRes.rows[0].id;
+
+                // Mark invite as used
+                await db.run(`UPDATE invites SET used = TRUE WHERE id = $1`, [invite.id]);
+
+                return res.status(201).json({ message: 'User created and joined condo successfully', userId: newUserId });
+            } catch (dbErr) {
+                if (dbErr.message.includes('unique constraint') || dbErr.message.includes('already exists')) {
+                    return res.status(400).json({ error: 'Email already exists' });
+                }
+                return res.status(500).json({ error: dbErr.message });
+            }
         } else {
             return res.status(400).json({ error: 'You must provide a new Condo Address or an Invite Code.' });
         }
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
 // Login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
     const { email, password } = req.body;
-    db.get(`SELECT * FROM users WHERE email = ?`, [email], async (err, user) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const user = await db.get(`SELECT * FROM users WHERE email = $1`, [email]);
         if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
@@ -123,16 +125,18 @@ router.post('/login', (req, res) => {
         }, SECRET, { expiresIn: '1d' });
 
         res.json({ token, user: { id: user.id, name: user.name, role: user.role, condo_id: user.condo_id } });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Forgot Password - generate a reset token
-router.post('/forgot-password', (req, res) => {
+router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    db.get(`SELECT id FROM users WHERE email = ?`, [email], (err, user) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const user = await db.get(`SELECT id FROM users WHERE email = $1`, [email]);
         if (!user) return res.status(404).json({ error: 'No account found with that email' });
 
         // Generate a 20-character reset token
@@ -145,15 +149,16 @@ router.post('/forgot-password', (req, res) => {
         // Token expires in 1 hour
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-        db.run(`INSERT INTO reset_tokens (email, token, expires_at) VALUES (?, ?, ?)`,
-            [email, token, expiresAt],
-            function (err) {
-                if (err) return res.status(500).json({ error: 'Failed to create reset token' });
-                // In production, send this via email. For now, return it directly.
-                res.json({ message: 'Reset token generated', token });
-            }
+        await db.run(
+            `INSERT INTO reset_tokens (email, token, expires_at) VALUES ($1, $2, $3)`,
+            [email, token, expiresAt]
         );
-    });
+
+        // In production, send this via email. For now, return it directly.
+        res.json({ message: 'Reset token generated', token });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to create reset token' });
+    }
 });
 
 // Reset Password - validate token and update password
@@ -161,8 +166,8 @@ router.post('/reset-password', async (req, res) => {
     const { token, password } = req.body;
     if (!token || !password) return res.status(400).json({ error: 'Token and new password are required' });
 
-    db.get(`SELECT * FROM reset_tokens WHERE token = ? AND used = 0`, [token], async (err, resetToken) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const resetToken = await db.get(`SELECT * FROM reset_tokens WHERE token = $1 AND used = FALSE`, [token]);
         if (!resetToken) return res.status(400).json({ error: 'Invalid or expired reset token' });
 
         // Check expiry
@@ -172,15 +177,15 @@ router.post('/reset-password', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        db.run(`UPDATE users SET password_hash = ? WHERE email = ?`, [hashedPassword, resetToken.email], function (err) {
-            if (err) return res.status(500).json({ error: err.message });
+        await db.run(`UPDATE users SET password_hash = $1 WHERE email = $2`, [hashedPassword, resetToken.email]);
 
-            // Mark token as used
-            db.run(`UPDATE reset_tokens SET used = 1 WHERE id = ?`, [resetToken.id]);
+        // Mark token as used
+        await db.run(`UPDATE reset_tokens SET used = TRUE WHERE id = $1`, [resetToken.id]);
 
-            res.json({ message: 'Password has been reset successfully' });
-        });
-    });
+        res.json({ message: 'Password has been reset successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;
