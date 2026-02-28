@@ -41,7 +41,7 @@ export default function Login() {
                     <div style={{ padding: '12px', borderRadius: '16px', backgroundColor: 'var(--bg-input)', color: 'var(--primary-color)' }}>
                         <Building2 size={36} />
                     </div>
-                    <h2 className="mt-6 mb-2">CondiApp Login</h2>
+                    <h2 className="mt-6 mb-2">CondoConnect Login</h2>
                     <p className="text-center text-sm">Access your condominium documents.</p>
                 </div>
 

@@ -13,7 +13,7 @@ export default function Register() {
         unit_number: '',
         password: '',
         address: '', // for new condo
-        condo_id: '', // for joining existing
+        invite_code: '', // for joining existing 13-char code
     });
 
     const [isCreatingCondo, setIsCreatingCondo] = useState(true);
@@ -33,7 +33,7 @@ export default function Register() {
         // Clean data based on mode
         const dataToSend = { ...formData };
         if (isCreatingCondo) {
-            delete dataToSend.condo_id;
+            delete dataToSend.invite_code;
         } else {
             delete dataToSend.address;
         }
@@ -134,8 +134,8 @@ export default function Register() {
                         </div>
                     ) : (
                         <div>
-                            <label className="text-sm font-medium">Condo ID (from invite)</label>
-                            <input type="text" name="condo_id" className="input-field mt-2" onChange={handleChange} required={!isCreatingCondo} placeholder="e.g. 1" />
+                            <label className="text-sm font-medium text-primary" style={{ color: 'var(--primary-color)' }}>13-Character Invite Code</label>
+                            <input type="text" name="invite_code" className="input-field mt-2" onChange={handleChange} required={!isCreatingCondo} placeholder="e.g. AbC123XyZ4567" maxLength={13} />
                         </div>
                     )}
 

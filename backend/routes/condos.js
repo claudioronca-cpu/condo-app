@@ -11,18 +11,28 @@ router.post('/invite', auth, (req, res) => {
 
     const { email, role } = req.body;
 
-    if (!email) {
-        return res.status(400).json({ error: 'Email is required for invitation' });
+    // Generate a secure 13 character alphanumeric code
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let code = '';
+    for (let i = 0; i < 13; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    // To simulate an invite, the admin pre-creates a dummy record or generates a code.
-    // We'll return a simple mock invitation code that the frontend can display.
-    // The new user can then register using this code. We'll simplify and just return condo_id.
-    res.json({
-        message: 'Invitation generated successfully',
-        invite_condo_id: req.user.condo_id,
-        instructions: `User should register and pass condo_id: ${req.user.condo_id} and role: ${role || 'owner'}`
-    });
+    db.run(`INSERT INTO invites (code, condo_id, email, role) VALUES (?, ?, ?, ?)`,
+        [code, req.user.condo_id, email, role || 'owner'],
+        function (err) {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Failed to generate invitation code' });
+            }
+
+            res.json({
+                message: 'Invitation generated successfully',
+                invite_code: code,
+                email: email,
+                role: role || 'owner'
+            });
+        });
 });
 
 // List condo members

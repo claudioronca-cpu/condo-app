@@ -17,6 +17,7 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS condos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       address TEXT NOT NULL,
+      name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -51,6 +52,20 @@ db.serialize(() => {
       FOREIGN KEY (uploaded_by) REFERENCES users(id),
       FOREIGN KEY (condo_id) REFERENCES condos(id),
       FOREIGN KEY (target_user_id) REFERENCES users(id)
+    )
+  `);
+
+  // Invites Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS invites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      condo_id INTEGER NOT NULL,
+      email TEXT NOT NULL,
+      role TEXT NOT NULL,
+      used BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (condo_id) REFERENCES condos(id)
     )
   `);
 });
