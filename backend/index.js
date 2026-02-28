@@ -18,9 +18,12 @@ const authRoutes = require('./routes/auth');
 const condoRoutes = require('./routes/condos');
 const docRoutes = require('./routes/docs');
 
-app.use('/auth', authRoutes);
-app.use('/condos', condoRoutes);
-app.use('/docs', docRoutes);
+const apiRouter = express.Router();
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/condos', condoRoutes);
+apiRouter.use('/docs', docRoutes);
+
+app.use('/api', apiRouter);
 
 // General error handler
 app.use((err, req, res, next) => {
