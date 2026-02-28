@@ -18,29 +18,23 @@ const authRoutes = require('./routes/auth');
 const condoRoutes = require('./routes/condos');
 const docRoutes = require('./routes/docs');
 
+// Health check / ping
+app.get('/api/ping', (req, res) => res.json({ status: 'ok', message: 'CondoConnect API at /api/ping' }));
+app.get('/ping', (req, res) => res.json({ status: 'ok', message: 'CondoConnect API at /ping' }));
+
 const apiRouter = express.Router();
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/condos', condoRoutes);
 apiRouter.use('/docs', docRoutes);
 
-// Health check / ping
-apiRouter.get('/ping', (req, res) => res.json({ status: 'ok', message: 'CondoConnect API is online' }));
-
+// Mount at both to be safe
 app.use('/api', apiRouter);
-app.use('/', apiRouter); // Catch-all for Vercel routing
+app.use('/', apiRouter);
 
 // General error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: err.message || 'Internal Server Error' });
 });
-
-const PORT = process.env.PORT || 3000;
-
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
-}
 
 module.exports = app;
