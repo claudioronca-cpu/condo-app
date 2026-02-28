@@ -140,19 +140,10 @@ export default function Dashboard() {
                 )
             }
 
-            {/* Main Grid */}
+            {/* Document Sections - Stacked Vertically */}
             <div className="flex flex-col" style={{ gap: '2rem' }}>
-                <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 350px) 1fr', gap: '2rem' }}>
-                    {/* Left Column - Upload Zone */}
-                    <div className="flex flex-col gap-4">
-                        <DocumentUpload onUploadSuccess={triggerRefresh} />
-                    </div>
-
-                    {/* Right Column - Document List */}
-                    <div className="flex flex-col h-full w-full">
-                        <DocumentList refreshTrigger={refreshTrigger} />
-                    </div>
-                </div>
+                <DocumentUpload onUploadSuccess={triggerRefresh} />
+                <DocumentList refreshTrigger={refreshTrigger} />
             </div>
 
             {/* Condo Settings Overlay */}

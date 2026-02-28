@@ -68,6 +68,18 @@ db.serialize(() => {
       FOREIGN KEY (condo_id) REFERENCES condos(id)
     )
   `);
+
+  // Reset Tokens Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at DATETIME NOT NULL,
+      used BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 });
 
 module.exports = db;

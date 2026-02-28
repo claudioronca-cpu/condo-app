@@ -56,7 +56,7 @@ export default function DocumentUpload({ onUploadSuccess }) {
 
     return (
         <div className="card" style={{ padding: '1.5rem' }}>
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-4">
                 <div style={{ background: 'var(--bg-input)', padding: '8px', borderRadius: '10px' }}>
                     <UploadCloud size={20} style={{ color: 'var(--primary-color)' }} />
                 </div>
@@ -69,60 +69,61 @@ export default function DocumentUpload({ onUploadSuccess }) {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div>
+            <form onSubmit={handleSubmit} className="flex items-end gap-4" style={{ flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
                     <label className="text-sm font-medium mb-1 block">Document Title</label>
                     <input
                         type="text"
                         className="input-field"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="e.g. November Meeting Minutes"
+                        placeholder="e.g. Meeting Minutes"
                         required
                     />
                 </div>
 
-                <div>
+                <div style={{ flex: '0 1 180px', minWidth: '140px' }}>
                     <label className="text-sm font-medium mb-1 block">File</label>
-                    <div className="flex items-center mt-1">
-                        <label className="btn btn-outline w-full" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }}>
-                            <FileText size={18} />
-                            {file ? <span style={{ marginLeft: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>{file.name}</span> : <span style={{ marginLeft: '8px' }}>Choose File</span>}
-                            <input
-                                type="file"
-                                style={{ display: 'none' }}
-                                onChange={(e) => setFile(e.target.files[0])}
-                            />
-                        </label>
-                    </div>
+                    <label className="input-field" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                        <FileText size={16} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{file ? file.name : 'Choose File'}</span>
+                        <input
+                            type="file"
+                            style={{ display: 'none' }}
+                            onChange={(e) => setFile(e.target.files[0])}
+                        />
+                    </label>
                 </div>
 
                 {user?.role === 'admin' && (
-                    <div>
-                        <label className="text-sm font-medium mb-1 block">Target User (Leave empty for common)</label>
+                    <div style={{ flex: '0 1 200px', minWidth: '150px' }}>
+                        <label className="text-sm font-medium mb-1 block">Target User</label>
                         <select
-                            className="input-field mt-1"
+                            className="input-field"
                             value={targetUserId}
                             onChange={(e) => setTargetUserId(e.target.value)}
                         >
-                            <option value="">-- All Condo Users (Common) --</option>
+                            <option value="">All (Common)</option>
                             {members.map(m => (
-                                <option key={m.id} value={m.id}>{m.name} {m.surname} (Unit {m.unit_number || 'N/A'})</option>
+                                <option key={m.id} value={m.id}>{m.name} {m.surname}</option>
                             ))}
                         </select>
                     </div>
                 )}
 
-                {user?.role !== 'admin' && (
-                    <p className="text-sm text-muted mb-2 mt-2 p-3" style={{ background: 'var(--bg-input)', borderRadius: '8px' }}>
-                        Note: Owners can only upload documents that will be visible to all members of the condo (Common documents).
-                    </p>
-                )}
-
-                <button type="submit" className="btn btn-primary mt-2" disabled={loading || !file || !title}>
-                    {loading ? 'Uploading...' : 'Upload Now'}
-                </button>
+                <div>
+                    <label className="text-sm font-medium mb-1 block" style={{ visibility: 'hidden' }}>Upload</label>
+                    <button type="submit" className="btn btn-primary" style={{ whiteSpace: 'nowrap', height: '44px' }} disabled={loading || !file || !title}>
+                        <UploadCloud size={16} /> {loading ? 'Uploading...' : 'Upload'}
+                    </button>
+                </div>
             </form>
+
+            {user?.role !== 'admin' && (
+                <p className="text-sm text-muted mt-4 mb-0 p-3" style={{ background: 'var(--bg-input)', borderRadius: '8px' }}>
+                    Note: Owners can only upload common documents visible to all members.
+                </p>
+            )}
         </div>
     );
 }

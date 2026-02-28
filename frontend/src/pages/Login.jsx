@@ -73,6 +73,11 @@ export default function Login() {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
+                        <div className="text-right mt-2">
+                            <Link to="/forgot-password" style={{ color: 'var(--primary-color)', fontSize: '0.8rem', textDecoration: 'none' }}>
+                                Forgot Password?
+                            </Link>
+                        </div>
                     </div>
                     <button type="submit" className="btn btn-primary w-full mt-2">
                         <LogIn size={18} />
